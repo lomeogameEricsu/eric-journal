@@ -1,0 +1,3 @@
+entries/*.md
+.sync-config
+!entries/TEMPLATE.md
