@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Eric 每日复盘</title>
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #252525;
+    --border: #333;
+    --text: #e0e0e0;
+    --text2: #999;
+    --accent: #4a9eff;
+    --accent2: #2d7ad6;
+    --green: #4caf50;
+    --orange: #ff9800;
+    --red: #ef5350;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-text-size-adjust: 100%;
+  }
+  .container { max-width: 800px; margin: 0 auto; padding: 16px; }
+
+  /* Header */
+  .header {
+    text-align: center;
+    padding: 20px 0 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .header h1 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+  .header .date { color: var(--text2); font-size: 13px; }
+  .header .day-count {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 3px 10px;
+    background: var(--accent);
+    color: white;
+    border-radius: 20px;
+    font-size: 12px;
+  }
+  .sync-status {
+    font-size: 11px;
+    color: var(--text2);
+    margin-top: 6px;
+  }
+  .sync-status.synced { color: var(--green); }
+  .sync-status.error { color: var(--red); }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tab {
+    padding: 10px 16px;
+    cursor: pointer;
+    color: var(--text2);
+    border-bottom: 2px solid transparent;
+    font-size: 14px;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* Panels */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: var(--text2);
+  }
+  .form-group label span { color: var(--accent); }
+
+  textarea, select, input[type="text"], input[type="password"] {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+  textarea:focus, input:focus {
+    border-color: var(--accent);
+  }
+  textarea { min-height: 70px; }
+
+  /* Rating */
+  .rating-group {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .rating-btn {
+    padding: 7px 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text2);
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .rating-btn:hover { border-color: var(--accent); color: var(--text); }
+  .rating-btn.selected { background: var(--accent); color: white; border-color: var(--accent); }
+
+  /* Buttons */
+  .btn {
+    padding: 11px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-primary { background: var(--accent); color: white; width: 100%; }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-secondary { background: var(--surface2); color: var(--text); }
+  .btn-secondary:hover { background: var(--border); }
+  .btn-danger { background: var(--red); color: white; font-size: 13px; padding: 8px 16px; }
+  .btn-small { font-size: 12px; padding: 6px 12px; }
+  .btn-group { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+
+  /* History */
+  .entry-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .entry-card:hover { border-color: var(--accent); }
+  .entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .entry-date { font-weight: 600; font-size: 14px; }
+  .entry-mood { font-size: 12px; color: var(--text2); }
+  .entry-preview { font-size: 13px; color: var(--text2); line-height: 1.5; }
+  .entry-tags { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
+  .tag {
+    padding: 2px 7px;
+    background: var(--surface2);
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--text2);
+  }
+
+  /* Detail */
+  .detail-section { margin-bottom: 14px; }
+  .detail-section h3 {
+    font-size: 12px;
+    color: var(--accent);
+    margin-bottom: 4px;
+    letter-spacing: 0.5px;
+  }
+  .detail-section p {
+    font-size: 14px;
+    white-space: pre-wrap;
+    line-height: 1.7;
+  }
+
+  /* Stats */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    text-align: center;
+  }
+  .stat-value { font-size: 26px; font-weight: 700; color: var(--accent); }
+  .stat-label { font-size: 11px; color: var(--text2); margin-top: 4px; }
+
+  .streak-bar {
+    display: flex;
+    gap: 3px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .streak-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    background: var(--surface2);
+  }
+  .streak-dot.filled { background: var(--green); }
+  .streak-dot.today { border: 1px solid var(--accent); }
+
+  /* Settings */
+  .settings-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .settings-section h3 {
+    font-size: 14px;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+  .settings-section p {
+    font-size: 12px;
+    color: var(--text2);
+    margin-bottom: 10px;
+    line-height: 1.5;
+  }
+  .settings-section a { color: var(--accent); }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text2);
+  }
+
+  .back-btn {
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 14px;
+    margin-bottom: 14px;
+    display: inline-block;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 20px;
+    background: var(--green);
+    color: white;
+    border-radius: 8px;
+    font-size: 13px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 100;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+
+  @media (max-width: 480px) {
+    .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .stat-card { padding: 10px 6px; }
+    .stat-value { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Eric 每日复盘</h1>
+    <div class="date" id="todayDate"></div>
+    <div class="day-count" id="dayCount"></div>
+    <div class="sync-status" id="syncStatus"></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="write">今日记录</div>
+    <div class="tab" data-tab="history">历史</div>
+    <div class="tab" data-tab="stats">统计</div>
+    <div class="tab" data-tab="settings">设置</div>
+  </div>
+
+  <!-- Write Panel -->
+  <div class="panel active" id="panel-write">
+    <div class="form-group">
+      <label>情绪状态</label>
+      <div class="rating-group" id="moodGroup">
+        <div class="rating-btn" data-value="1">很低落</div>
+        <div class="rating-btn" data-value="2">有点丧</div>
+        <div class="rating-btn" data-value="3">平稳</div>
+        <div class="rating-btn" data-value="4">不错</div>
+        <div class="rating-btn" data-value="5">很好</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>精力水平</label>
+      <div class="rating-group" id="energyGroup">
+        <div class="rating-btn" data-value="1">疲惫</div>
+        <div class="rating-btn" data-value="2">一般</div>
+        <div class="rating-btn" data-value="3">充沛</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label><span>业务进展</span> — 漫剧/游戏/老公司</label>
+      <textarea id="business" placeholder="今天业务上做了哪些事..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label><span>AI学习</span> — 学了什么？用在哪？</label>
+      <textarea id="aiLearning" placeholder="AI工具或概念，实践经验..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label><span>人际关系</span> — 和谁聊了？</label>
+      <textarea id="people" placeholder="和同事/朋友/家人的交流..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label><span>内心感受</span> — 最真实的想法</label>
+      <textarea id="feelings" placeholder="不用修饰，写下最真实的感受..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label><span>今日反思</span> — 做对了什么？哪里更好？</label>
+      <textarea id="reflection" placeholder="收获和可以改进的地方..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>明天最重要的一件事</label>
+      <input type="text" id="tomorrow" placeholder="明天要聚焦的核心事项">
+    </div>
+
+    <div class="form-group">
+      <label>今天运动了吗？</label>
+      <div class="rating-group" id="exerciseGroup">
+        <div class="rating-btn" data-value="yes">运动了</div>
+        <div class="rating-btn" data-value="no">没有</div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="saveEntry()">保存今日记录</button>
+    <div class="btn-group">
+      <button class="btn btn-secondary btn-small" onclick="exportForClaude()">复制给 Claude</button>
+      <button class="btn btn-secondary btn-small" onclick="exportWeekForClaude()">复制本周给 Claude</button>
+    </div>
+  </div>
+
+  <!-- History Panel -->
+  <div class="panel" id="panel-history">
+    <div id="historyList"></div>
+    <div id="historyDetail" style="display:none"></div>
+  </div>
+
+  <!-- Stats Panel -->
+  <div class="panel" id="panel-stats">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value" id="statTotal">0</div>
+        <div class="stat-label">总天数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statStreak">0</div>
+        <div class="stat-label">连续</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statExercise">0%</div>
+        <div class="stat-label">运动率</div>
+      </div>
+    </div>
+    <div class="stat-card" style="margin-bottom:14px">
+      <div class="stat-label" style="margin-bottom:8px">最近30天</div>
+      <div class="streak-bar" id="streakBar"></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label" style="margin-bottom:8px">情绪趋势（14天）</div>
+      <canvas id="moodChart" height="120"></canvas>
+    </div>
+  </div>
+
+  <!-- Settings Panel -->
+  <div class="panel" id="panel-settings">
+    <div class="settings-section">
+      <h3>云端同步设置</h3>
+      <p>使用 GitHub Gist 同步数据，这样手机和电脑的记录会自动同步。</p>
+      <p>1. 打开 <a href="https://github.com/settings/tokens/new?scopes=gist&description=Eric-Journal" target="_blank">GitHub Token 页面</a><br>
+         2. 勾选 "gist" 权限，生成 Token<br>
+         3. 粘贴到下方</p>
+      <div class="form-group">
+        <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxx">
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary btn-small" onclick="saveToken()">保存并同步</button>
+        <button class="btn btn-secondary btn-small" onclick="forceSync()">手动同步</button>
+      </div>
+      <div id="tokenStatus" style="font-size:12px;color:var(--text2);margin-top:8px"></div>
+    </div>
+
+    <div class="settings-section">
+      <h3>数据管理</h3>
+      <div class="btn-group">
+        <button class="btn btn-secondary btn-small" onclick="exportJSON()">导出 JSON</button>
+        <button class="btn btn-secondary btn-small" onclick="importJSON()">导入 JSON</button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="handleImport(event)">
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'eric_journal';
+const TOKEN_KEY = 'eric_journal_gh_token';
+const GIST_ID_KEY = 'eric_journal_gist_id';
+const START_DATE = new Date('2026-03-11');
+
+// ===== Data Layer =====
+function getEntries() {
+  return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+}
+function saveEntriesLocal(entries) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+}
+
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function daysBetween(d1, d2) {
+  return Math.floor((d2 - d1) / (1000*60*60*24));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ===== GitHub Gist Sync =====
+function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+function getGistId() { return localStorage.getItem(GIST_ID_KEY) || ''; }
+
+async function syncToCloud() {
+  const token = getToken();
+  if (!token) return;
+
+  const entries = getEntries();
+  const content = JSON.stringify(entries, null, 2);
+  const gistId = getGistId();
+  const statusEl = document.getElementById('syncStatus');
+
+  try {
+    let res;
+    if (gistId) {
+      // Update existing gist
+      res = await fetch(`https://api.github.com/gists/${gistId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `token ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          files: { 'journal-data.json': { content } }
+        })
+      });
+    } else {
+      // Create new gist
+      res = await fetch('https://api.github.com/gists', {
+        method: 'POST',
+        headers: {
+          'Authorization': `token ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          description: 'Eric Journal Data - Auto Sync',
+          public: false,
+          files: { 'journal-data.json': { content } }
+        })
+      });
+    }
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    if (!gistId && data.id) {
+      localStorage.setItem(GIST_ID_KEY, data.id);
+    }
+
+    statusEl.textContent = `已同步 ${new Date().toLocaleTimeString('zh-CN')}`;
+    statusEl.className = 'sync-status synced';
+  } catch (e) {
+    statusEl.textContent = `同步失败: ${e.message}`;
+    statusEl.className = 'sync-status error';
+  }
+}
+
+async function syncFromCloud() {
+  const token = getToken();
+  const gistId = getGistId();
+  if (!token || !gistId) return false;
+
+  try {
+    const res = await fetch(`https://api.github.com/gists/${gistId}`, {
+      headers: { 'Authorization': `token ${token}` }
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const content = data.files['journal-data.json']?.content;
+    if (!content) return false;
+
+    const cloudEntries = JSON.parse(content);
+    const localEntries = getEntries();
+
+    // Merge: for each date, keep the one with latest timestamp
+    const merged = { ...cloudEntries };
+    for (const [key, entry] of Object.entries(localEntries)) {
+      if (!merged[key] || (entry.timestamp && (!merged[key].timestamp || entry.timestamp > merged[key].timestamp))) {
+        merged[key] = entry;
+      }
+    }
+
+    saveEntriesLocal(merged);
+    return true;
+  } catch (e) {
+    console.error('Sync from cloud failed:', e);
+    return false;
+  }
+}
+
+async function fullSync() {
+  const statusEl = document.getElementById('syncStatus');
+  statusEl.textContent = '同步中...';
+  statusEl.className = 'sync-status';
+
+  await syncFromCloud();
+  await syncToCloud();
+}
+
+// ===== Settings =====
+async function saveToken() {
+  const token = document.getElementById('ghToken').value.trim();
+  if (!token) return;
+
+  const statusEl = document.getElementById('tokenStatus');
+  statusEl.textContent = '验证中...';
+
+  try {
+    const res = await fetch('https://api.github.com/user', {
+      headers: { 'Authorization': `token ${token}` }
+    });
+    if (!res.ok) throw new Error('Token 无效');
+
+    localStorage.setItem(TOKEN_KEY, token);
+    statusEl.textContent = '验证成功，开始同步...';
+
+    await fullSync();
+    loadToday();
+    statusEl.textContent = '同步完成！';
+    showToast('云端同步已开启');
+  } catch (e) {
+    statusEl.textContent = `失败: ${e.message}`;
+  }
+}
+
+async function forceSync() {
+  if (!getToken()) {
+    showToast('请先设置 Token');
+    return;
+  }
+  await fullSync();
+  loadToday();
+  showToast('同步完成');
+}
+
+// ===== Init =====
+function initHeader() {
+  const now = new Date();
+  const weekdays = ['日','一','二','三','四','五','六'];
+  document.getElementById('todayDate').textContent =
+    `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 星期${weekdays[now.getDay()]}`;
+  const day = daysBetween(START_DATE, now) + 1;
+  if (day > 0 && day <= 90) {
+    document.getElementById('dayCount').textContent = `90天计划 第${day}天`;
+  } else if (day > 90) {
+    document.getElementById('dayCount').textContent = `90天计划已完成 +${day-90}天`;
+  } else {
+    document.getElementById('dayCount').textContent = `距离启动还有${-day+1}天`;
+  }
+
+  // Show token if exists
+  if (getToken()) {
+    document.getElementById('ghToken').value = getToken();
+  }
+}
+
+// Tabs
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+    if (tab.dataset.tab === 'history') renderHistory();
+    if (tab.dataset.tab === 'stats') renderStats();
+  });
+});
+
+// Rating buttons
+document.querySelectorAll('.rating-group').forEach(group => {
+  group.querySelectorAll('.rating-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      group.querySelectorAll('.rating-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+  });
+});
+
+function getSelected(groupId) {
+  const sel = document.querySelector(`#${groupId} .rating-btn.selected`);
+  return sel ? sel.dataset.value : '';
+}
+
+function loadToday() {
+  const entries = getEntries();
+  const today = entries[todayKey()];
+  if (today) {
+    document.getElementById('business').value = today.business || '';
+    document.getElementById('aiLearning').value = today.aiLearning || '';
+    document.getElementById('people').value = today.people || '';
+    document.getElementById('feelings').value = today.feelings || '';
+    document.getElementById('reflection').value = today.reflection || '';
+    document.getElementById('tomorrow').value = today.tomorrow || '';
+
+    ['moodGroup','energyGroup','exerciseGroup'].forEach(g => {
+      document.querySelectorAll(`#${g} .rating-btn`).forEach(b => b.classList.remove('selected'));
+    });
+    if (today.mood) document.querySelector(`#moodGroup .rating-btn[data-value="${today.mood}"]`)?.classList.add('selected');
+    if (today.energy) document.querySelector(`#energyGroup .rating-btn[data-value="${today.energy}"]`)?.classList.add('selected');
+    if (today.exercise) document.querySelector(`#exerciseGroup .rating-btn[data-value="${today.exercise}"]`)?.classList.add('selected');
+  }
+}
+
+async function saveEntry() {
+  const entry = {
+    date: todayKey(),
+    mood: getSelected('moodGroup'),
+    energy: getSelected('energyGroup'),
+    exercise: getSelected('exerciseGroup'),
+    business: document.getElementById('business').value.trim(),
+    aiLearning: document.getElementById('aiLearning').value.trim(),
+    people: document.getElementById('people').value.trim(),
+    feelings: document.getElementById('feelings').value.trim(),
+    reflection: document.getElementById('reflection').value.trim(),
+    tomorrow: document.getElementById('tomorrow').value.trim(),
+    timestamp: new Date().toISOString()
+  };
+  const entries = getEntries();
+  entries[todayKey()] = entry;
+  saveEntriesLocal(entries);
+  showToast('已保存');
+
+  // Auto sync if token exists
+  if (getToken()) {
+    await syncToCloud();
+  }
+}
+
+// ===== Export =====
+const moodLabels = {'1':'很低落','2':'有点丧','3':'平稳','4':'不错','5':'很好'};
+const energyLabels = {'1':'疲惫','2':'一般','3':'充沛'};
+
+function entryToMarkdown(e) {
+  let md = `## ${e.date}\n`;
+  md += `情绪：${moodLabels[e.mood]||'未记录'} | 精力：${energyLabels[e.energy]||'未记录'} | 运动：${e.exercise==='yes'?'是':'否'}\n\n`;
+  if (e.business) md += `**业务进展：**\n${e.business}\n\n`;
+  if (e.aiLearning) md += `**AI学习：**\n${e.aiLearning}\n\n`;
+  if (e.people) md += `**人际关系：**\n${e.people}\n\n`;
+  if (e.feelings) md += `**内心感受：**\n${e.feelings}\n\n`;
+  if (e.reflection) md += `**反思：**\n${e.reflection}\n\n`;
+  if (e.tomorrow) md += `**明日重点：** ${e.tomorrow}\n\n`;
+  md += `---\n\n`;
+  return md;
+}
+
+function exportForClaude() {
+  const entries = getEntries();
+  const keys = Object.keys(entries).sort().reverse().slice(0, 7);
+  let md = `# Eric 最近7天日记\n导出：${new Date().toLocaleString('zh-CN')}\n\n`;
+  keys.forEach(k => { md += entryToMarkdown(entries[k]); });
+  copyText(md);
+}
+
+function exportWeekForClaude() {
+  const entries = getEntries();
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay() + 1);
+
+  let md = `# Eric 本周日记\n导出：${new Date().toLocaleString('zh-CN')}\n\n`;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    if (entries[k]) md += entryToMarkdown(entries[k]);
+  }
+  copyText(md);
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('已复制，粘贴给 Claude 即可');
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('已复制');
+  });
+}
+
+function exportJSON() {
+  const data = JSON.stringify(getEntries(), null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `journal-${todayKey()}.json`;
+  a.click();
+  showToast('已下载');
+}
+
+function importJSON() {
+  document.getElementById('importFile').click();
+}
+
+function handleImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const imported = JSON.parse(ev.target.result);
+      const current = getEntries();
+      const merged = { ...current, ...imported };
+      saveEntriesLocal(merged);
+      loadToday();
+      showToast(`已导入 ${Object.keys(imported).length} 条记录`);
+    } catch (err) {
+      showToast('导入失败：文件格式错误');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ===== History =====
+function renderHistory() {
+  const entries = getEntries();
+  const keys = Object.keys(entries).sort().reverse();
+  const list = document.getElementById('historyList');
+  const detail = document.getElementById('historyDetail');
+  detail.style.display = 'none';
+  list.style.display = 'block';
+
+  if (keys.length === 0) {
+    list.innerHTML = '<div class="empty-state">还没有记录，从今天开始吧</div>';
+    return;
+  }
+
+  const moodEmoji = {'1':'😔','2':'😐','3':'🙂','4':'😊','5':'😄'};
+
+  list.innerHTML = keys.map(key => {
+    const e = entries[key];
+    const preview = e.feelings || e.reflection || e.business || '无内容';
+    return `<div class="entry-card" onclick="showDetail('${key}')">
+      <div class="entry-header">
+        <span class="entry-date">${key}</span>
+        <span class="entry-mood">${moodEmoji[e.mood]||''} ${moodLabels[e.mood]||''}</span>
+      </div>
+      <div class="entry-preview">${preview.substring(0,80)}${preview.length>80?'...':''}</div>
+      <div class="entry-tags">
+        ${e.exercise==='yes'?'<span class="tag">运动</span>':''}
+        ${e.aiLearning?'<span class="tag">AI</span>':''}
+        ${e.business?'<span class="tag">业务</span>':''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function showDetail(key) {
+  const entries = getEntries();
+  const e = entries[key];
+  if (!e) return;
+
+  document.getElementById('historyList').style.display = 'none';
+  const detail = document.getElementById('historyDetail');
+  detail.style.display = 'block';
+
+  const sections = [
+    {label:'业务进展', value: e.business},
+    {label:'AI学习', value: e.aiLearning},
+    {label:'人际关系', value: e.people},
+    {label:'内心感受', value: e.feelings},
+    {label:'反思', value: e.reflection},
+    {label:'明日重点', value: e.tomorrow},
+  ].filter(s => s.value);
+
+  detail.innerHTML = `
+    <div class="back-btn" onclick="renderHistory()">← 返回</div>
+    <h2 style="margin-bottom:6px;font-size:18px">${key}</h2>
+    <p style="color:var(--text2);font-size:12px;margin-bottom:16px">
+      情绪：${moodLabels[e.mood]||'未记录'} | 精力：${energyLabels[e.energy]||'未记录'} | 运动：${e.exercise==='yes'?'是':'否'}
+    </p>
+    ${sections.map(s => `
+      <div class="detail-section">
+        <h3>${s.label}</h3>
+        <p>${s.value}</p>
+      </div>
+    `).join('')}
+    <div style="margin-top:20px">
+      <button class="btn btn-danger btn-small" onclick="if(confirm('确定删除？')){deleteEntry('${key}')}">删除</button>
+    </div>
+  `;
+}
+
+function deleteEntry(key) {
+  const entries = getEntries();
+  delete entries[key];
+  saveEntriesLocal(entries);
+  renderHistory();
+  if (getToken()) syncToCloud();
+  showToast('已删除');
+}
+
+// ===== Stats =====
+function renderStats() {
+  const entries = getEntries();
+  const keys = Object.keys(entries).sort();
+  document.getElementById('statTotal').textContent = keys.length;
+
+  let streak = 0;
+  let checkDate = new Date();
+  while (true) {
+    const k = `${checkDate.getFullYear()}-${String(checkDate.getMonth()+1).padStart(2,'0')}-${String(checkDate.getDate()).padStart(2,'0')}`;
+    if (entries[k]) { streak++; checkDate.setDate(checkDate.getDate()-1); }
+    else break;
+  }
+  document.getElementById('statStreak').textContent = streak;
+
+  const exercised = keys.filter(k => entries[k].exercise === 'yes').length;
+  document.getElementById('statExercise').textContent = keys.length ? Math.round(exercised/keys.length*100)+'%' : '0%';
+
+  // 30-day bar
+  const bar = document.getElementById('streakBar');
+  bar.innerHTML = '';
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const dot = document.createElement('div');
+    dot.className = 'streak-dot' + (entries[k]?' filled':'') + (i===0?' today':'');
+    dot.title = k;
+    bar.appendChild(dot);
+  }
+
+  drawMoodChart(entries);
+}
+
+function drawMoodChart(entries) {
+  const canvas = document.getElementById('moodChart');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = (rect.width - 32) * dpr;
+  canvas.height = 120 * dpr;
+  canvas.style.width = (rect.width - 32) + 'px';
+  canvas.style.height = '120px';
+  ctx.scale(dpr, dpr);
+
+  const w = rect.width - 32;
+  const h = 120;
+  const pad = { top: 10, bottom: 22, left: 10, right: 10 };
+  const cw = w - pad.left - pad.right;
+  const ch = h - pad.top - pad.bottom;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 0.5;
+  for (let i = 1; i <= 5; i++) {
+    const y = pad.top + ch - (i/5)*ch;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(w-pad.right, y); ctx.stroke();
+  }
+
+  const days = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    days.push({ date: k.substring(5), mood: entries[k]?parseInt(entries[k].mood)||0:0 });
+  }
+
+  const points = [];
+  days.forEach((d,i) => {
+    const x = pad.left + (i/(days.length-1))*cw;
+    if (d.mood > 0) points.push({ x, y: pad.top + ch - (d.mood/5)*ch });
+    if (i%2===0) {
+      ctx.fillStyle = '#666'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(d.date, x, h-4);
+    }
+  });
+
+  if (points.length > 1) {
+    ctx.beginPath(); ctx.strokeStyle = '#4a9eff'; ctx.lineWidth = 2;
+    ctx.moveTo(points[0].x, points[0].y);
+    points.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+    ctx.stroke();
+  }
+  points.forEach(p => { ctx.beginPath(); ctx.fillStyle='#4a9eff'; ctx.arc(p.x,p.y,3.5,0,Math.PI*2); ctx.fill(); });
+}
+
+// ===== Startup =====
+initHeader();
+loadToday();
+// Auto sync on load
+if (getToken()) {
+  fullSync().then(() => loadToday());
+}
+</script>
+</body>
+</html>
